@@ -1,0 +1,20 @@
+$kontenRequirements = @'
+# =========================================================================
+# 📋 REKREASI BACKEND AI SUPPORT UNTUK PORTAL ABSENSI EMEN ENTERPRISE v3.0
+# =========================================================================
+# Catatan: Instalasi ini digunakan jika mengembangkan server Python 
+# (Flask / FastAPI) untuk menyimpan & mencocokkan hash enkripsi wajah lanjutan.
+
+bcrypt==4.1.2            # Mesin enkripsi & hashing biner satu arah wajah
+Flask==3.0.2             # Framework server micro backend python ringan
+Flask-Cors==4.0.0        # Pengaman izin lintas origin antara React HP dan Python API
+numpy==1.26.4            # Komputasi matriks matematika vektor koordinat wajah
+opencv-python==4.9.0.80  # Pustaka Computer Vision utama pelacak kamera wajah
+pandas==2.2.1            # Pemrosesan rekap data tabel laporan kebugaran
+requests==2.31.0         # Handler HTTP request eksternal API
+PyJWT==2.8.0             # Token otentikasi login admin RBAC terenkripsi
+python-dotenv==1.0.1     # Manajemen pengunci variabel rahasia (.env)
+' @
+
+Set-Content -Path "requirements.txt" -Value $kontenRequirements -Encoding utf8
+Write-Host "🟢 Berkas requirements.txt berhasil di-generate utuh!" -ForegroundCo
