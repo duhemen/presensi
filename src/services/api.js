@@ -1,56 +1,85 @@
-/**
- * Mengambil database lokal untuk keperluan export data
- */
-const getLocalDB = (key) => JSON.parse(localStorage.getItem(key)) || [];
-const saveLocalDB = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+// ============================================================
+// File: src/services/api.js
+// Simulasi API Server menggunakan LocalStorage
+// ============================================================
 
-/**
- * Mengirim data absensi lengkap dengan enkripsi biner wajah dan GPS.
- */
+const ATTENDANCE_KEY = 'attendance_logs';
+const LEAVE_KEY = 'leave_logs';
+
+// ---------- Helper: LocalStorage aman ----------
+const readDB = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeDB = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('LocalStorage penuh atau error:', err);
+    throw new Error('Penyimpanan lokal penuh. Bersihkan data lama terlebih dahulu.');
+  }
+};
+
+// ---------- API: Kirim Absensi ----------
 export const sendAttendanceToServer = async (attendanceData) => {
-  const currentLogs = getLocalDB('attendance_logs');
+  if (!attendanceData?.employeeId) {
+    throw new Error('Data absensi tidak valid: employeeId wajib ada.');
+  }
+
+  const logs = readDB(ATTENDANCE_KEY);
   const newLog = {
     id: 'ATT-' + Date.now(),
     ...attendanceData,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  currentLogs.push(newLog);
-  saveLocalDB('attendance_logs', currentLogs);
+  logs.push(newLog);
+  writeDB(ATTENDANCE_KEY, logs);
 
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ status: "success", message: "Presensi berhasil disimpan ke basis data pusat!" });
-    }, 800);
-  });
+  // Simulasi latency jaringan
+  return new Promise((resolve) =>
+    setTimeout(
+      () => resolve({ status: 'success', message: 'Presensi berhasil disimpan ke basis data pusat!' }),
+      400
+    )
+  );
 };
 
-/**
- * Mengirim formulir pengajuan ketidakhadiran (Cuti, Sakit, Izin, Hamil, Lupa Absen)
- */
+// ---------- API: Kirim Pengajuan Cuti ----------
 export const submitLeaveRequest = async (leaveData) => {
-  const currentLeaves = getLocalDB('leave_logs');
+  if (!leaveData?.employeeId || !leaveData?.startDate || !leaveData?.endDate) {
+    throw new Error('Data pengajuan tidak lengkap.');
+  }
+
+  const leaves = readDB(LEAVE_KEY);
   const newLeave = {
     id: 'LEAVE-' + Date.now(),
     ...leaveData,
     status: 'PENDING',
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
   };
-  currentLeaves.push(newLeave);
-  saveLocalDB('leave_logs', currentLeaves);
+  leaves.push(newLeave);
+  writeDB(LEAVE_KEY, leaves);
 
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ status: "success", message: `Pengajuan ${leaveData.leaveType} berhasil dikirim ke HRD!` });
-    }, 800);
-  });
+  return new Promise((resolve) =>
+    setTimeout(
+      () =>
+        resolve({
+          status: 'success',
+          message: `Pengajuan ${leaveData.leaveType} berhasil dikirim ke HRD!`,
+        }),
+      400
+    )
+  );
 };
 
-/**
- * Mengambil seluruh data gabungan untuk keperluan generator laporan Excel / PDF
- */
-export const fetchAllReportData = () => {
-  return {
-    attendance: getLocalDB('attendance_logs'),
-    leaves: getLocalDB('leave_logs')
-  };
-};
+// ---------- API: Ambil Semua Data Laporan ----------
+export const fetchAllReportData = () => ({
+  attendance: readDB(ATTENDANCE_KEY),
+  leaves: readDB(LEAVE_KEY),
+});
