@@ -7,11 +7,6 @@
 <!-- Animated Wave Header -->
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f0c29,50:302b63,100:24243e&height=220&section=header&text=Portal%20Presensi%20Biometrik&fontSize=50&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Enterprise%20v3.0%20%E2%80%94%20Kriptografi%20Biometrik%20Satu%20Arah&descAlignY=58&descSize=18" width="100%"/>
 
-<!-- Typing SVG Animation -->
-<a href="https://git.io/typing-svg">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=1000&color=6C63FF&center=true&vCenter=true&random=false&width=600&lines=🔐+Enkripsi+Bcrypt+One-Way+Hash;👁️+Face+Liveness+Detection;🗺️+Geofencing+Adaptif+Multi-Role;📊+Dashboard+HRD+Real-Time;💬+Widget+Chat+Terintegrasi" alt="Typing SVG" />
-</a>
-
 <br/>
 
 <!-- Badges Baris 1: Status & Teknologi -->
