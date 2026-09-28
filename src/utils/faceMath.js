@@ -1,85 +1,91 @@
+// ============================================================
+// File: src/utils/faceMath.js
+// Utilitas matematika: EAR, ekstraksi vektor wajah, Haversine GPS
+// ============================================================
+
 /**
- * Menghitung jarak Euclidean antara dua titik koordinat 3D.
+ * Jarak Euclidean 2D (x, y) — lebih stabil untuk perhitungan EAR.
  */
-const euclideanDistance = (point1, point2) => {
-  return Math.sqrt(
-    Math.pow(point1.x - point2.x, 2) +
-    Math.pow(point1.y - point2.y, 2) +
-    Math.pow(point1.z - point2.z, 2)
-  );
+const euclideanDistance2D = (a, b) => {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
 };
 
 /**
- * Menghitung Eye Aspect Ratio (EAR) untuk mendeteksi kedipan.
- * Menggunakan indeks titik standar MediaPipe Face Mesh.
- * @param {Array} landmarks - Array koordinat wajah dari MediaPipe.
- * @param {string} eye - 'left' atau 'right'.
- * @returns {number} - Nilai rasio mata (makin kecil artinya mata tertutup).
+ * Menghitung Eye Aspect Ratio (EAR) — indikator mata terbuka/tertutup.
+ * EAR < 0.22 → mata tertutup (berkedip)
+ * EAR > 0.28 → mata terbuka
+ *
+ * @param {Array} landmarks - Array 468 titik MediaPipe Face Mesh.
+ * @param {'left'|'right'} eye - Mata yang diukur.
+ * @returns {number} Nilai EAR.
  */
 export const calculateEAR = (landmarks, eye = 'left') => {
-  // Indeks koordinat mata MediaPipe Face Mesh v2
-  const eyeIndices = eye === 'left' 
-    ? { p1: 33, p2: 160, p3: 158, p4: 133, p5: 153, p6: 144 }
-    : { p1: 362, p2: 385, p3: 387, p4: 263, p5: 373, p6: 380 };
+  if (!Array.isArray(landmarks) || landmarks.length === 0) return 0;
 
-  const p1 = landmarks[eyeIndices.p1];
-  const p2 = landmarks[eyeIndices.p2];
-  const p3 = landmarks[eyeIndices.p3];
-  const p4 = landmarks[eyeIndices.p4];
-  const p5 = landmarks[eyeIndices.p5];
-  const p6 = landmarks[eyeIndices.p6];
+  // Indeks titik mata MediaPipe Face Mesh v2
+  const idx =
+    eye === 'left'
+      ? { p1: 33, p2: 160, p3: 158, p4: 133, p5: 153, p6: 144 }
+      : { p1: 362, p2: 385, p3: 387, p4: 263, p5: 373, p6: 380 };
 
-  // Jarak vertikal kelopak mata
-  const v1 = euclideanDistance(p2, p6);
-  const v2 = euclideanDistance(p3, p5);
+  const p1 = landmarks[idx.p1];
+  const p2 = landmarks[idx.p2];
+  const p3 = landmarks[idx.p3];
+  const p4 = landmarks[idx.p4];
+  const p5 = landmarks[idx.p5];
+  const p6 = landmarks[idx.p6];
 
-  // Jarak horizontal sudut mata
-  const h = euclideanDistance(p1, p4);
+  if (!p1 || !p2 || !p3 || !p4 || !p5 || !p6) return 0;
 
-  // Rumus EAR
-  const ear = (v1 + v2) / (2.0 * h);
-  return ear;
+  const v1 = euclideanDistance2D(p2, p6);
+  const v2 = euclideanDistance2D(p3, p5);
+  const h = euclideanDistance2D(p1, p4);
+
+  if (h === 0) return 0;
+  return (v1 + v2) / (2.0 * h);
 };
 
 /**
- * Mengekstrak koordinat wajah penting menjadi array rata (Flat Vector) untuk hashing.
- * Mengurangi jumlah titik dari 468 ke 30 titik utama untuk stabilitas pencocokan biner.
+ * Mengekstrak 30 titik kunci wajah (×3 koordinat = 90 angka) menjadi vektor rata.
+ * Digunakan sebagai input hashing biometrik.
  */
 export const extractKeyFaceVector = (landmarks) => {
-  // Ambil beberapa titik kunci representatif (hidung, mata, rahang, bibir)
+  if (!Array.isArray(landmarks) || landmarks.length === 0) return [];
+
   const keyIndices = [
-    1, 4, 33, 61, 133, 159, 263, 291, 362, 386, 
+    1, 4, 33, 61, 133, 159, 263, 291, 362, 386,
     10, 152, 234, 454, 107, 336, 6, 197, 168, 8,
-    57, 287, 13, 14, 78, 308, 95, 324, 88, 318
+    57, 287, 13, 14, 78, 308, 95, 324, 88, 318,
   ];
-  
+
   const vector = [];
-  keyIndices.forEach(index => {
-    if (landmarks[index]) {
-      vector.push(landmarks[index].x);
-      vector.push(landmarks[index].y);
-      vector.push(landmarks[index].z);
+  keyIndices.forEach((i) => {
+    const lm = landmarks[i];
+    if (lm) {
+      vector.push(lm.x, lm.y, lm.z);
     }
   });
-  
   return vector;
 };
 
 /**
- * Menghitung jarak antara dua titik koordinat GPS (Latitude, Longitude) menggunakan Rumus Haversine.
- * @returns {number} - Jarak dalam satuan Meter.
+ * Menghitung jarak antara dua koordinat GPS (Haversine).
+ * @returns {number} Jarak dalam meter.
  */
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371000; // Jari-jari bumi dalam meter
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  
-  const a = 
+  const R = 6371000; // Radius bumi (meter)
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; 
-  return distance; // Hasil dalam meter
+  return R * c;
 };
